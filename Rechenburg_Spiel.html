@@ -1,0 +1,293 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sturm auf die Rechenburg</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Nunito:wght@600;800;900&display=swap">
+<style>
+/* Spielshow für den Beamer: bewusst ein festes, helles Look (Himmel, Wasser, Burgstein). Groß, kontrastreich, eine Aufgabe pro Bildschirm. */
+:root{
+  --sky:#cfe9ff; --sky2:#eaf6ff; --water:#1f8fb3; --water-d:#0f5f7a; --stone:#6b6f7a; --stone-l:#d9dbe0;
+  --ink:#16202c; --card:#ffffff; --gold:#f4b400; --ok:#15995a; --bad:#d6403a;
+  --t1:#e0473f; --t2:#2f6fdd; --t3:#16a05d; --t4:#e6a700;
+  --font-show:"Bungee","Impact","Arial Black",sans-serif; --font:"Nunito","Segoe UI",system-ui,sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:linear-gradient(var(--sky),var(--sky2) 70%);color:var(--ink);font-family:var(--font);font-weight:700;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px 24px}
+h1,h2,.show{font-family:var(--font-show);font-weight:400;letter-spacing:.02em;line-height:1.05;margin:0;text-wrap:balance}
+.app{max-width:1280px;margin:0 auto;display:grid;gap:18px}
+.topbar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+.logo{font-family:var(--font-show);font-size:clamp(1.3rem,3vw,2rem);color:var(--water-d)}
+.logo span{color:var(--t1)}
+.scores{display:flex;flex-wrap:wrap;gap:10px}
+.score{display:flex;align-items:center;gap:10px;background:var(--card);border-radius:14px;padding:8px 12px;border:3px solid var(--tc);min-width:0}
+.score .nm{font-weight:900}
+.score .pt{font-family:var(--font-show);font-size:1.5rem;color:var(--tc)}
+.score.active{box-shadow:0 0 0 4px var(--gold);transform:translateY(-2px)}
+.lane{display:flex;gap:3px}
+.lane i{width:16px;height:16px;border-radius:50%;background:var(--stone-l);display:grid;place-items:center;font-size:10px;font-style:normal}
+.lane i.ok{background:var(--ok);color:#fff} .lane i.bad{background:var(--water);color:#fff}
+.stage{background:var(--card);border-radius:22px;padding:clamp(16px,3vw,32px);box-shadow:0 10px 0 var(--stone-l);display:grid;gap:18px;min-width:0;position:relative;overflow:hidden}
+.btn{font:inherit;font-weight:900;font-size:1.15rem;border:0;border-radius:14px;padding:14px 22px;cursor:pointer;background:var(--ink);color:#fff;box-shadow:0 5px 0 #000}
+.btn:active{transform:translateY(3px);box-shadow:0 2px 0 #000}
+.btn.ok{background:var(--ok);box-shadow:0 5px 0 #0b5c36}
+.btn.bad{background:var(--water);box-shadow:0 5px 0 var(--water-d)}
+.btn.gold{background:var(--gold);color:var(--ink);box-shadow:0 5px 0 #a87b00}
+.btn.light{background:var(--stone-l);color:var(--ink);box-shadow:0 5px 0 #a9adb6}
+.btn:disabled{opacity:.45;cursor:default}
+.btn:focus-visible,input:focus-visible{outline:4px solid var(--t2);outline-offset:3px}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.center{text-align:center;justify-items:center}
+.muted{color:#4d5868;font-weight:700}
+/* Karte */
+.map{width:100%;height:auto;display:block}
+.stlist{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+.st{border-radius:14px;padding:12px 14px;background:var(--sky2);border:3px solid transparent;display:grid;gap:4px}
+.st.now{border-color:var(--gold);background:#fff7dc}
+.st.done{opacity:.6}
+.st b{font-family:var(--font-show);font-weight:400;font-size:1.05rem}
+/* Aufgabe */
+.turn{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.chip{border-radius:99px;padding:6px 14px;color:#fff;font-weight:900;background:var(--tc)}
+.q{font-size:clamp(1.3rem,3vw,1.9rem)}
+.expr{font-family:var(--font-show);font-size:clamp(2rem,6vw,4.2rem);color:var(--ink);text-align:center;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.opts{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.opt{border:3px solid var(--stone-l);border-radius:14px;padding:14px;font-family:var(--font-show);font-size:clamp(1.3rem,3vw,2rem);text-align:center;background:#fff}
+.opt.right{border-color:var(--ok);background:#e6f7ee}
+.timer{display:grid;gap:6px;min-width:min(340px,100%)}
+.tbar{height:16px;border-radius:99px;background:var(--stone-l);overflow:hidden}
+.tbar i{display:block;height:100%;background:var(--ok);width:100%;transition:width 1s linear,background .3s}
+.tnum{font-family:var(--font-show);font-size:1.6rem}
+.sol{border-radius:16px;background:#eef9f2;border:3px solid var(--ok);padding:16px 18px;display:grid;gap:8px}
+.sol .ans{font-family:var(--font-show);font-size:clamp(1.6rem,4vw,2.6rem);color:var(--ok)}
+.sol ol{margin:0;padding-left:1.3em;font-size:1.25rem;display:grid;gap:4px}
+/* Platsch */
+.splash{position:absolute;inset:0;display:grid;place-items:center;background:linear-gradient(transparent 0,rgba(31,143,179,.92) 30%);color:#fff;pointer-events:none;animation:wave .9s ease-out both,fade .6s 2s forwards}
+.splash .show{font-size:clamp(3rem,10vw,7rem);text-shadow:0 6px 0 var(--water-d)}
+.yay{position:absolute;inset:0;display:grid;place-items:center;background:rgba(21,153,90,.88);color:#fff;pointer-events:none;animation:pop .6s ease-out both,fade .6s 1.6s forwards}
+.yay .show{font-size:clamp(2.5rem,8vw,6rem);text-shadow:0 6px 0 #0b5c36}
+@keyframes wave{from{transform:translateY(100%)}to{transform:none}}
+@keyframes fade{to{opacity:0;visibility:hidden}}
+@keyframes pop{from{transform:scale(.6);opacity:0}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){.splash,.yay{animation:none}.tbar i{transition:none}}
+/* Setup */
+.teams{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.teams label{display:grid;gap:6px;font-weight:900}
+.teams input{font:inherit;font-size:1.15rem;padding:10px 12px;border-radius:12px;border:3px solid var(--tc);width:100%}
+.rules{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
+.rules div{background:var(--sky2);border-radius:14px;padding:12px 14px}
+.final-teams{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+.ft{border:3px solid var(--tc);border-radius:14px;padding:12px;display:grid;gap:10px;justify-items:center}
+.ft.ok{background:#e6f7ee} .ft.bad{background:#e3f2f8}
+.podium{display:flex;justify-content:center;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.pod{width:min(200px,28vw);border-radius:14px 14px 0 0;color:#fff;display:grid;justify-items:center;align-content:start;padding:12px 8px;gap:4px;background:var(--tc)}
+.pod .show{font-size:clamp(1.5rem,4vw,2.6rem)}
+canvas#confetti{position:fixed;inset:0;width:100%;height:100%;pointer-events:none}
+.joker{font-size:.9rem;padding:6px 10px;border-radius:10px;border:2px dashed var(--tc);background:#fff;cursor:pointer;font-weight:900;color:var(--ink)}
+.joker:disabled{opacity:.35;text-decoration:line-through;cursor:default}
+</style>
+</head><body>
+
+<div class="app">
+  <div class="topbar">
+    <div class="logo">Sturm auf die <span>Rechenburg</span></div>
+    <div class="scores" id="scores"></div>
+  </div>
+  <div class="stage" id="stage"></div>
+</div>
+<canvas id="confetti" hidden></canvas>
+
+<script>
+const M = "−", X = "·";
+const n = s => s.replace(/-/g, M).replace(/\*/g, X);
+const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const COLORS = ["var(--t1)", "var(--t2)", "var(--t3)", "var(--t4)"];
+const DEF = ["Team Rot", "Team Blau", "Team Grün", "Team Gelb"];
+
+// ---------- Aufgaben (aus dem Arbeitsblatt „Fit fürs Wochenende“) ----------
+const Q = {
+  first: [
+    ["5 + 3 * 2", ["5 + 3", "3 * 2"], 1, "Punkt vor Strich!"], ["(5 + 3) * 2", ["5 + 3", "3 * 2"], 0, "Klammer zuerst!"], ["12 - 8 : 4", ["12 - 8", "8 : 4"], 1, "Punkt vor Strich!"], ["9 - 4 - 2", ["9 - 4", "4 - 2"], 0, "Nur Strich: von links nach rechts!"],
+    ["-6 * (2 + 1)", ["-6 * 2", "2 + 1"], 1, "Klammer zuerst!"], ["20 : 5 * 2", ["20 : 5", "5 * 2"], 0, "Nur Punkt: von links nach rechts!"], ["7 - 2 * (-3)", ["7 - 2", "2 * (-3)"], 1, "Punkt vor Strich!"], ["(-4 + 1) * 5", ["-4 + 1", "1 * 5"], 0, "Klammer zuerst!"]
+  ].map(([e, o, a, h]) => ({ type: "mc", q: "Was rechnest du zuerst?", expr: e, opts: o, a, steps: [h] })),
+  basic: [
+    ["8 + 2 * (-5)", "-2", ["Punkt zuerst: 2 * (-5) = -10", "8 + (-10) = -2"]], ["(8 + 2) * (-5)", "-50", ["Klammer zuerst: 8 + 2 = 10", "10 * (-5) = -50"]],
+    ["-18 : 3 + 4", "-2", ["Punkt zuerst: -18 : 3 = -6", "-6 + 4 = -2"]], ["12 - 3 * (-3)", "21", ["Punkt zuerst: 3 * (-3) = -9", "12 - (-9) = 12 + 9 = 21"]],
+    ["-15 : (-5) - 4", "-1", ["Punkt zuerst: -15 : (-5) = 3", "3 - 4 = -1"]], ["(-2 - 4) * 3", "-18", ["Klammer zuerst: -2 - 4 = -6", "-6 * 3 = -18"]],
+    ["-3 + 4 * 2", "5", ["Punkt zuerst: 4 * 2 = 8", "-3 + 8 = 5"]], ["(-3 + 4) * 2", "2", ["Klammer zuerst: -3 + 4 = 1", "1 * 2 = 2"]],
+    ["10 - 6 : (-2)", "13", ["Punkt zuerst: 6 : (-2) = -3", "10 - (-3) = 10 + 3 = 13"]], ["(10 - 6) : (-2)", "-2", ["Klammer zuerst: 10 - 6 = 4", "4 : (-2) = -2"]],
+    ["-2 * 5 + 3", "-7", ["Punkt zuerst: -2 * 5 = -10", "-10 + 3 = -7"]], ["-2 * (5 + 3)", "-16", ["Klammer zuerst: 5 + 3 = 8", "-2 * 8 = -16"]]
+  ].map(([e, a, s]) => ({ type: "num", q: "Rechne aus!", expr: e, a, steps: s })),
+  mid: [
+    ["-5 + 2 * (-3)", "-11", ["2 * (-3) = -6", "-5 + (-6) = -11"]], ["(-5 + 2) * (-3)", "9", ["-5 + 2 = -3", "(-3) * (-3) = 9"]], ["20 : (-4) + 7", "2", ["20 : (-4) = -5", "-5 + 7 = 2"]],
+    ["-9 - 3 * 4", "-21", ["3 * 4 = 12", "-9 - 12 = -21"]], ["(6 - 10) * (-2)", "8", ["6 - 10 = -4", "(-4) * (-2) = 8"]], ["-14 : 2 - (-5)", "-2", ["-14 : 2 = -7", "-7 - (-5) = -7 + 5 = -2"]],
+    ["3 * (-2) + 4 * (-1)", "-10", ["3 * (-2) = -6 und 4 * (-1) = -4", "-6 + (-4) = -10"]], ["-2 * (7 - 3)", "-8", ["7 - 3 = 4", "-2 * 4 = -8"]],
+    ["7 + (-3) * 4", "-5", ["(-3) * 4 = -12", "7 + (-12) = -5"]], ["-16 : (-4) - 6", "-2", ["-16 : (-4) = 4", "4 - 6 = -2"]], ["(-1 - 5) * 2", "-12", ["-1 - 5 = -6", "(-6) * 2 = -12"]],
+    ["15 - 4 * (-2)", "23", ["4 * (-2) = -8", "15 - (-8) = 15 + 8 = 23"]], ["-30 : (3 + 2)", "-6", ["3 + 2 = 5", "-30 : 5 = -6"]], ["(-8 + 2) : (-3)", "2", ["-8 + 2 = -6", "(-6) : (-3) = 2"]],
+    ["-4 * (-3) - 2 * 5", "2", ["-4 * (-3) = 12 und 2 * 5 = 10", "12 - 10 = 2"]], ["6 + 18 : (-6) - 1", "2", ["18 : (-6) = -3", "6 + (-3) - 1 = 2"]]
+  ].map(([e, a, s]) => ({ type: "num", q: "Rechne aus!", expr: e, a, steps: s })),
+  error: [
+    ["-6 + 4 * (-3) = -2 * (-3) = 6", "-18", "Strich vor Punkt gerechnet.", ["Punkt zuerst: 4 * (-3) = -12", "-6 + (-12) = -18"]],
+    ["9 - 2 * (-3) = 9 - 6 = 3", "15", "Vorzeichen beim Abschreiben vergessen.", ["2 * (-3) = -6", "9 - (-6) = 9 + 6 = 15"]],
+    ["(-3 + 5) * (-2) = -3 + (-10) = -13", "-4", "Die Klammer wurde nicht zuerst gerechnet.", ["Klammer: -3 + 5 = 2", "2 * (-2) = -4"]],
+    ["-12 : 4 - 2 = -12 : 2 = -6", "-5", "Strich vor Punkt gerechnet.", ["-12 : 4 = -3", "-3 - 2 = -5"]],
+    ["20 - 8 - 2 = 20 - 6 = 14", "10", "Nicht von links nach rechts gerechnet.", ["20 - 8 = 12", "12 - 2 = 10"]],
+    ["-5 * (-2) + 3 = -10 + 3 = -7", "13", "Vorzeichenregel falsch: Minus mal Minus ergibt Plus.", ["-5 * (-2) = 10", "10 + 3 = 13"]],
+    ["7 - 2 * (-5) = -10", "17", "Den Rest (7 -) nicht abgeschrieben.", ["2 * (-5) = -10", "7 - (-10) = 7 + 10 = 17"]],
+    ["(-2) * (-3) * (-1) + 1 = 6 + 1 = 7", "-5", "Minuszeichen falsch gezählt: 3 Minus ergibt minus.", ["(-2) * (-3) * (-1) = -6", "-6 + 1 = -5"]]
+  ].map(([e, a, w, s]) => ({ type: "err", q: "Finde den Fehler! Was ist falsch? Was ist richtig?", expr: e, a, why: w, steps: s })),
+  final: [
+    ["Morgens sind es -3 °C. Die Temperatur steigt 4 Stunden lang um je 2 Grad. Wie warm ist es dann?", "-3 + 4 * 2", "5 °C", ["Steigen heißt plus: 4 * 2 = 8", "-3 + 8 = 5"]],
+    ["Tims Kontostand ist -10 €. Er bekommt dreimal je 15 € Taschengeld. Wie hoch ist sein Kontostand dann?", "-10 + 3 * 15", "35 €", ["3 * 15 = 45", "-10 + 45 = 35"]],
+    ["Ein Taucher ist bei -5 m. Er taucht dreimal je 4 m tiefer. Wo ist er dann?", "-5 + 3 * (-4)", "-17 m", ["Tiefer heißt minus: 3 * (-4) = -12", "-5 + (-12) = -17"]],
+    ["Ein Konto hat 40 €. Es wird dreimal je 25 € abgebucht. Dann werden 20 € eingezahlt. Wie hoch ist der Kontostand?", "40 + 3 * (-25) + 20", "-15 €", ["3 * (-25) = -75", "40 + (-75) + 20 = -15"]],
+    ["Multipliziere die Summe von -5 und 9 mit -3.", "(-5 + 9) * (-3)", "-12", ["Klammer: -5 + 9 = 4", "4 * (-3) = -12"]],
+    ["Subtrahiere von 10 den Quotienten von -12 und 4.", "10 - (-12) : 4", "13", ["Punkt: (-12) : 4 = -3", "10 - (-3) = 13"]]
+  ].map(([t, e, a, s]) => ({ type: "final", q: t, expr: e, a, steps: s }))
+};
+const STAGES = [
+  { key: "first", name: "Die Wackelsteine", desc: "Was rechnest du zuerst? Wer zögert, rutscht ab!", pts: 1, time: 30 },
+  { key: "basic", name: "Die Hängebrücke", desc: "Eine Aufgabe mit zwei Schritten. Schritt für Schritt über die Brücke!", pts: 2, time: 60 },
+  { key: "mid", name: "Das Labyrinth", desc: "Mittelschwere Aufgaben. Nur wer die Reihenfolge kennt, findet den Weg.", pts: 3, time: 75 },
+  { key: "error", name: "Die Fehlerfalle", desc: "Hier hat jemand falsch gerechnet. Findet den Fehler und das richtige Ergebnis!", pts: 3, time: 75 },
+  { key: "final", name: "Das Burgtor", desc: "Finale! Alle Teams rechnen gleichzeitig. Wer richtig liegt, stürmt die Burg.", pts: 5, time: 120 }
+];
+
+// ---------- Spielzustand ----------
+let G = null;
+function newGame(names) {
+  G = { teams: names.map((nm, i) => ({ nm, c: COLORS[i], pts: 0, lane: [], joker: true })), stage: 0, turn: 0, pools: {}, cur: null };
+  STAGES.forEach(s => G.pools[s.key] = shuffle(Q[s.key]));
+}
+const draw = key => { if (!G.pools[key].length) G.pools[key] = shuffle(Q[key]); return G.pools[key].pop(); };
+const $ = id => document.getElementById(id);
+const stageEl = () => $("stage");
+function renderScores(active = -1) {
+  if (!G) { $("scores").innerHTML = ""; return; }
+  $("scores").innerHTML = G.teams.map((t, i) => `<div class="score ${i === active ? "active" : ""}" style="--tc:${t.c}"><div style="display:grid;gap:4px"><span class="nm">${t.nm}</span><div class="lane">${STAGES.map((s, k) => { const r = t.lane[k]; return `<i class="${r === true ? "ok" : r === false ? "bad" : ""}" title="${s.name}">${r === true ? "✓" : r === false ? "~" : ""}</i>`; }).join("")}</div></div><span class="pt">${t.pts}</span></div>`).join("");
+}
+
+// ---------- Timer ----------
+let tmr = null, left = 0, total = 0;
+function timerHTML(sec) { return `<div class="timer"><div class="row" style="justify-content:space-between"><span class="tnum" id="tnum">${sec}</span><div class="row"><button class="btn light" id="tgo" type="button">▶ Zeit starten</button></div></div><div class="tbar"><i id="tbar"></i></div></div>`; }
+function bindTimer(sec) {
+  stopTimer(); left = total = sec;
+  $("tgo").onclick = () => { if (tmr) { stopTimer(); $("tgo").textContent = "▶ Weiter"; return; } $("tgo").textContent = "⏸ Pause";
+    tmr = setInterval(() => { left--; $("tnum").textContent = Math.max(left, 0); const b = $("tbar"); b.style.width = Math.max(left, 0) / total * 100 + "%"; if (left <= 10) b.style.background = "var(--bad)";
+      if (left <= 0) { stopTimer(); $("tnum").textContent = "Zeit um!"; $("tgo").disabled = true; } }, 1000); };
+}
+function stopTimer() { if (tmr) clearInterval(tmr); tmr = null; }
+
+// ---------- Ansichten ----------
+function setup() {
+  G = null; renderScores();
+  stageEl().innerHTML = `<div class="center" style="display:grid;gap:10px"><h1 style="font-size:clamp(2.2rem,7vw,4.8rem);color:var(--water-d)">Sturm auf die Rechenburg</h1><p class="q">Fünf Hindernisse. Eine Regel: <b>Kla – Pu – Stri</b>. Wer falsch rechnet, landet im Wasser!</p></div>
+  ${mapSVG(-1)}
+  <div class="rules"><div><b>So geht’s</b><br>Jedes Team bekommt an jedem Hindernis eine eigene Aufgabe. Das Team berät sich und nennt das Ergebnis.</div><div><b>Punkte</b><br>Wackelsteine 1 · Hängebrücke 2 · Labyrinth 3 · Fehlerfalle 3 · Burgtor 5</div><div><b>Rettungsring</b><br>Jedes Team darf einmal im Spiel eine Person aus der Klasse um Hilfe fragen.</div><div><b>Finale</b><br>Am Burgtor rechnen alle Teams gleichzeitig auf ihrer Tafel. Alle Richtigen bekommen 5 Punkte.</div></div>
+  <div style="display:grid;gap:10px"><b>Wie viele Teams spielen?</b><div class="row" id="cnt">${[2, 3, 4].map(k => `<button class="btn ${k === 4 ? "" : "light"}" data-k="${k}" type="button">${k} Teams</button>`).join("")}</div></div>
+  <div class="teams" id="tnames"></div>
+  <div class="row"><button class="btn gold" id="go" type="button">Spiel starten!</button></div>`;
+  let k = 4; const names = () => { $("tnames").innerHTML = DEF.slice(0, k).map((d, i) => `<label style="--tc:${COLORS[i]}">Name ${i + 1}<input id="tn${i}" value="${d}" maxlength="24"></label>`).join(""); };
+  names();
+  document.querySelectorAll("#cnt button").forEach(b => b.onclick = () => { k = +b.dataset.k; document.querySelectorAll("#cnt button").forEach(x => x.classList.toggle("light", x !== b)); names(); });
+  $("go").onclick = () => { newGame(Array.from({ length: k }, (_, i) => ($("tn" + i).value.trim() || DEF[i]))); showMap(); };
+}
+
+function mapSVG(cur) {
+  const xs = [90, 330, 570, 810, 1080], lbl = STAGES.map(s => s.name.replace("Die ", "").replace("Das ", ""));
+  let s = `<svg class="map" viewBox="0 0 1200 230" role="img" aria-label="Weg zur Burg mit fünf Hindernissen">
+  <rect x="0" y="150" width="1200" height="80" fill="#1f8fb3"/><path d="M0 150 Q 50 140 100 150 T 200 150 T 300 150 T 400 150 T 500 150 T 600 150 T 700 150 T 800 150 T 900 150 T 1000 150 T 1100 150 T 1200 150" fill="none" stroke="#9fdcf0" stroke-width="4"/>
+  <ellipse cx="50" cy="150" rx="40" ry="10" fill="#8a8f99"/><ellipse cx="90" cy="140" rx="34" ry="9" fill="#8a8f99"/><ellipse cx="135" cy="150" rx="30" ry="8" fill="#8a8f99"/>
+  <g stroke="#7a4d22" stroke-width="5"><line x1="250" y1="110" x2="410" y2="110"/></g>${[0, 1, 2, 3, 4, 5, 6, 7].map(i => `<rect x="${252 + i * 20}" y="112" width="15" height="12" fill="#b07a3e"/>`).join("")}<line x1="250" y1="110" x2="250" y2="150" stroke="#7a4d22" stroke-width="5"/><line x1="410" y1="110" x2="410" y2="150" stroke="#7a4d22" stroke-width="5"/>
+  <rect x="500" y="80" width="140" height="70" fill="#a7c97a" stroke="#5e8a35" stroke-width="4"/><path d="M500 105 H560 M580 80 V125 M520 125 H620 M600 105 V150" stroke="#5e8a35" stroke-width="6" fill="none"/>
+  <rect x="740" y="95" width="140" height="55" fill="#c9a26b"/><rect x="765" y="112" width="90" height="38" fill="#3a2a1a"/><text x="810" y="140" text-anchor="middle" font-family="Bungee, sans-serif" font-size="22" fill="#f4b400">?!</text>
+  <rect x="990" y="40" width="180" height="110" fill="#8a8f99"/>${[0, 1, 2, 3, 4].map(i => `<rect x="${990 + i * 38}" y="22" width="24" height="22" fill="#8a8f99"/>`).join("")}<path d="M1050 150 V100 Q1080 70 1110 100 V150 Z" fill="#3a2a1a"/><line x1="1080" y1="22" x2="1080" y2="-10" stroke="#16202c" stroke-width="4"/><path d="M1080 -10 L1120 2 L1080 14 Z" fill="#e0473f"/>`;
+  xs.forEach((x, i) => { const st = i < cur ? "#15995a" : i === cur ? "#f4b400" : "#ffffff";
+    s += `<circle cx="${x}" cy="196" r="20" fill="${st}" stroke="#16202c" stroke-width="3"/><text x="${x}" y="203" text-anchor="middle" font-family="Bungee, sans-serif" font-size="20" fill="#16202c">${i + 1}</text><text x="${x}" y="70" text-anchor="middle" font-family="Nunito, sans-serif" font-weight="900" font-size="20" fill="#16202c">${i === 4 ? "" : lbl[i]}</text>`; });
+  return s + "</svg>";
+}
+
+function showMap() {
+  renderScores();
+  const s = STAGES[G.stage];
+  stageEl().innerHTML = `${mapSVG(G.stage)}<div class="stlist">${STAGES.map((x, i) => `<div class="st ${i === G.stage ? "now" : i < G.stage ? "done" : ""}"><b>${i + 1}. ${x.name}</b><span class="muted">${x.pts} Punkt${x.pts > 1 ? "e" : ""}${i === 4 ? " · Finale" : ""}</span></div>`).join("")}</div>
+  <div class="center" style="display:grid;gap:10px"><span class="muted">Nächstes Hindernis</span><h2 style="font-size:clamp(2rem,5vw,3.4rem);color:var(--water-d)">${s.name}</h2><p class="q">${s.desc}</p><button class="btn gold" id="next" type="button">${G.stage === 4 ? "Zum Finale!" : "Los geht’s!"}</button></div>`;
+  $("next").onclick = () => { G.turn = 0; G.stage === 4 ? showFinal() : showTurn(); };
+}
+
+function exprHTML(t) {
+  if (t.type === "mc") return `<div class="expr">${n(t.expr)}</div><div class="opts">${t.opts.map((o, i) => `<div class="opt" data-i="${i}"><span class="muted" style="font-family:var(--font)">${"AB"[i]}</span><br>${n(o)}</div>`).join("")}</div>`;
+  return `<div class="expr">${n(t.expr)}</div>`;
+}
+function solHTML(t) {
+  const ans = t.type === "mc" ? `${"AB"[t.a]}: ${n(t.opts[t.a])}` : n(t.a);
+  return `<div class="sol"><span class="muted">Lösung</span><span class="ans">${ans}</span>${t.type === "err" ? `<span style="font-size:1.3rem"><b>Fehler:</b> ${t.why}</span>` : ""}<ol>${t.steps.map(x => `<li>${n(x)}</li>`).join("")}</ol></div>`;
+}
+
+function showTurn() {
+  const s = STAGES[G.stage], team = G.teams[G.turn], t = draw(s.key); G.cur = t; renderScores(G.turn);
+  stageEl().innerHTML = `<div class="turn"><span class="chip" style="--tc:${team.c}">${team.nm} ist dran</span><span class="muted">${G.stage + 1}. ${s.name} · ${s.pts} Punkt${s.pts > 1 ? "e" : ""}</span>${team.joker ? `<button class="joker" id="joker" style="--tc:${team.c}" type="button">🛟 Rettungsring nutzen</button>` : `<span class="muted">Rettungsring schon benutzt</span>`}</div>
+    <div class="q">${t.q}</div>${exprHTML(t)}${timerHTML(s.time)}<div id="solbox"></div>
+    <div class="row" id="ctrl"><button class="btn" id="show" type="button">Lösung zeigen</button></div>`;
+  bindTimer(s.time);
+  if ($("joker")) $("joker").onclick = () => { team.joker = false; $("joker").disabled = true; $("joker").textContent = "🛟 Rettungsring benutzt: Fragt eine Person aus der Klasse!"; };
+  $("show").onclick = () => { stopTimer(); $("solbox").innerHTML = solHTML(t);
+    if (t.type === "mc") stageEl().querySelector(`.opt[data-i="${t.a}"]`).classList.add("right");
+    $("ctrl").innerHTML = `<button class="btn ok" id="yes" type="button">✔ Geschafft!</button><button class="btn bad" id="no" type="button">✘ Platsch – ins Wasser!</button>`;
+    $("yes").onclick = () => result(true); $("no").onclick = () => result(false); };
+}
+function result(ok) {
+  const s = STAGES[G.stage], team = G.teams[G.turn];
+  team.lane[G.stage] = ok; if (ok) team.pts += s.pts; renderScores(G.turn);
+  const ov = document.createElement("div"); ov.className = ok ? "yay" : "splash";
+  ov.innerHTML = `<div class="center" style="display:grid;gap:8px"><span class="show">${ok ? "Geschafft!" : "PLATSCH!"}</span><span style="font-size:1.6rem;font-weight:900">${ok ? `+${s.pts} Punkte für ${team.nm}` : `${team.nm} ist ins Wasser gefallen!`}</span></div>`;
+  stageEl().appendChild(ov);
+  $("ctrl").innerHTML = `<button class="btn gold" id="cont" type="button">${G.turn < G.teams.length - 1 ? "Nächstes Team" : "Zur Karte"}</button>`;
+  $("ctrl").style.position = "relative"; $("ctrl").style.zIndex = 2;
+  $("cont").onclick = () => { if (G.turn < G.teams.length - 1) { G.turn++; showTurn(); } else { G.stage++; showMap(); } };
+}
+
+function showFinal() {
+  const s = STAGES[4], t = draw("final"); G.cur = t; renderScores();
+  const res = G.teams.map(() => null);
+  stageEl().innerHTML = `<div class="turn"><span class="chip" style="--tc:var(--bad)">Finale: Alle Teams gleichzeitig!</span><span class="muted">5. Das Burgtor · 5 Punkte</span></div>
+    <div class="q" style="font-size:clamp(1.4rem,3.2vw,2.2rem)">${n(t.q)}</div><p class="muted" style="font-size:1.2rem">Schreibt einen Term und das Ergebnis auf eure Tafel. Bei „Zeit um!“ zeigen alle gleichzeitig.</p>
+    ${timerHTML(s.time)}<div id="solbox"></div><div class="row" id="ctrl"><button class="btn" id="show" type="button">Lösung zeigen</button></div>`;
+  bindTimer(s.time);
+  $("show").onclick = () => { stopTimer();
+    $("solbox").innerHTML = `<div class="sol"><span class="muted">Lösung</span><span class="ans">${n(t.expr)} = ${n(t.a)}</span><ol>${t.steps.map(x => `<li>${n(x)}</li>`).join("")}</ol></div>
+      <div class="final-teams" style="margin-top:14px">${G.teams.map((tm, i) => `<div class="ft" id="ft${i}" style="--tc:${tm.c}"><b style="font-size:1.2rem">${tm.nm}</b><div class="row"><button class="btn ok" data-i="${i}" data-v="1" type="button">✔</button><button class="btn bad" data-i="${i}" data-v="0" type="button">✘</button></div></div>`).join("")}</div>`;
+    stageEl().querySelectorAll(".ft button").forEach(b => b.onclick = () => { const i = +b.dataset.i; res[i] = b.dataset.v === "1"; const el = $("ft" + i); el.classList.toggle("ok", res[i]); el.classList.toggle("bad", !res[i]); });
+    $("ctrl").innerHTML = `<button class="btn gold" id="win" type="button">Siegerehrung!</button>`;
+    $("win").onclick = () => { G.teams.forEach((tm, i) => { tm.lane[4] = res[i] === true; if (res[i] === true) tm.pts += s.pts; }); showWinner(); };
+  };
+}
+
+function showWinner() {
+  renderScores();
+  const order = G.teams.map((t, i) => ({ ...t, i })).sort((a, b) => b.pts - a.pts);
+  const best = order[0].pts, winners = order.filter(t => t.pts === best);
+  const heights = [220, 160, 120, 90];
+  const podOrder = order.length >= 3 ? [order[1], order[0], order[2], ...order.slice(3)] : order;
+  stageEl().innerHTML = `<div class="center" style="display:grid;gap:10px"><span class="muted">Die Burg ist erobert!</span><h1 style="font-size:clamp(2.2rem,6vw,4.4rem);color:var(--water-d)">${winners.map(w => w.nm).join(" & ")}</h1><p class="q">${winners.length > 1 ? "teilen sich den Sieg" : "gewinnt"} mit ${best} Punkten!</p></div>
+    <div class="podium">${podOrder.map(t => { const rank = order.indexOf(t); return `<div class="pod" style="--tc:${t.c};height:${heights[rank] || 80}px"><span class="show">${rank + 1}.</span><b>${t.nm}</b><span>${t.pts} Punkte</span></div>`; }).join("")}</div>
+    <p class="center q" style="font-size:1.2rem">Super gemacht! Am Dienstag zeigt ihr in der Lernkontrolle, dass ihr Kla – Pu – Stri könnt.</p>
+    <div class="row" style="justify-content:center"><button class="btn gold" id="again" type="button">Neues Spiel</button></div>`;
+  $("again").onclick = setup;
+  confetti();
+}
+
+function confetti() {
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const cv = $("confetti"), cx = cv.getContext("2d"); cv.hidden = false; cv.width = innerWidth; cv.height = innerHeight;
+  const cols = ["#e0473f", "#2f6fdd", "#16a05d", "#e6a700", "#1f8fb3"];
+  const ps = Array.from({ length: 160 }, () => ({ x: Math.random() * cv.width, y: -20 - Math.random() * cv.height, v: 2 + Math.random() * 4, r: Math.random() * 6.28, s: 6 + Math.random() * 8, c: cols[Math.floor(Math.random() * 5)] }));
+  let f = 0; (function tick() { cx.clearRect(0, 0, cv.width, cv.height); ps.forEach(p => { p.y += p.v; p.x += Math.sin((f + p.r * 10) / 20) * 1.5; p.r += .05; cx.save(); cx.translate(p.x, p.y); cx.rotate(p.r); cx.fillStyle = p.c; cx.fillRect(-p.s / 2, -p.s / 4, p.s, p.s / 2); cx.restore(); });
+    if (++f < 260) requestAnimationFrame(tick); else { cx.clearRect(0, 0, cv.width, cv.height); cv.hidden = true; } })();
+}
+
+setup();
+</script>
+</body></html>
